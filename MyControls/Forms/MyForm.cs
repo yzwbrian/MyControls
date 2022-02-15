@@ -10,7 +10,10 @@ namespace MyControls.Forms
 {
     public partial class MyForm : Form
     {
-        public new FormBorderStyle FormBorderStyle { get { return base.FormBorderStyle; } set { base.FormBorderStyle = value; } }
+        public new FormBorderStyle FormBorderStyle { 
+            get { return base.FormBorderStyle; } 
+            set { base.FormBorderStyle = value; } 
+        }
         public bool Sizable { get; set; }
         public new FormWindowState WindowState
         {
@@ -52,9 +55,11 @@ namespace MyControls.Forms
 
         [DllImport("user32.dll")]
         static public extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int Width, int Height, uint flags);
+        #endregion
 
+        #region native method const
         public const int SWP_NOSIZE = 1;//保持大小
-    public const int SWP_NOZORDER = 4;//hWndInsertAfter, 保持Z顺序
+        public const int SWP_NOZORDER = 4;//忽略参数hWndInsertAfter, 保持Z顺序
 
         public const int WM_NCLBUTTONDOWN = 0xA1;
         public const int HT_CAPTION = 0x2;
@@ -81,7 +86,9 @@ namespace MyControls.Forms
         private const int WMSZ_BOTTOM = 6;
         private const int WMSZ_BOTTOMLEFT = 7;
         private const int WMSZ_BOTTOMRIGHT = 8;
+        #endregion
 
+        #region native method struct
         private readonly Dictionary<int, int> _resizingLocationsToCmd = new Dictionary<int, int>
         {
             {HTTOP,         WMSZ_TOP},
@@ -94,8 +101,8 @@ namespace MyControls.Forms
             {HTBOTTOMRIGHT, WMSZ_BOTTOMRIGHT}
         };
 
-        private const int STATUS_BAR_BUTTON_WIDTH = STATUS_BAR_HEIGHT;
-        private const int STATUS_BAR_HEIGHT = 24;
+        private const int CAPTION_BUTTON_WIDTH = CAPTION_HEIGHT;
+        private const int CAPTION_HEIGHT = 24;
         private const int ACTION_BAR_HEIGHT = 40;
 
         private const uint TPM_LEFTALIGN = 0x0000;
@@ -162,6 +169,7 @@ namespace MyControls.Forms
             None
         }
 
+        #region private Variable
         private readonly Cursor[] _resizeCursors = {
             Cursors.SizeNESW,
             Cursors.SizeWE,
@@ -183,13 +191,19 @@ namespace MyControls.Forms
         private Rectangle _minButtonBounds;
         private Rectangle _maxButtonBounds;
         private Rectangle _xButtonBounds;
-        private Rectangle _statusBarBounds;
+        private Rectangle _CaptionBounds;
 
         private Point _maxPos;
 
         private Point[] _paths = new Point[8];
+        #endregion
+
+        #region 构造函数
         public MyForm()
         {
+            Font = SkinManager.ControlFont;
+            BackColor = SkinManager.ControlBackColor;
+            ForeColor = SkinManager.ControlForeColor;
 
             FormBorderStyle = FormBorderStyle.None;
             Sizable = true;
@@ -197,9 +211,10 @@ namespace MyControls.Forms
             SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
             SetMaxsize();
             // This enables the form to trigger the MouseMove event even when mouse is over another control
-            Application.AddMessageFilter(new MouseMessageFilter());
-            MouseMessageFilter.MouseMove += OnGlobalMouseMove;
+            //Application.AddMessageFilter(new MouseMessageFilter());
+            //MouseMessageFilter.MouseMove += OnGlobalMouseMove;
         }
+        #endregion
 
         #region WndProc
         protected override void WndProc(ref Message m)
@@ -212,7 +227,7 @@ namespace MyControls.Forms
                 MaximizeWindow(!_maximized);
             }
             else if (m.Msg == WM_MOUSEMOVE && _maximized &&
-                _statusBarBounds.Contains(PointToClient(Cursor.Position)) &&
+                _CaptionBounds.Contains(PointToClient(Cursor.Position)) &&
                 !(_minButtonBounds.Contains(PointToClient(Cursor.Position)) || _maxButtonBounds.Contains(PointToClient(Cursor.Position)) || _xButtonBounds.Contains(PointToClient(Cursor.Position))))
             {
                 if (_headerMouseDown)
@@ -230,7 +245,7 @@ namespace MyControls.Forms
                 }
             }
             else if (m.Msg == WM_LBUTTONDOWN &&
-                _statusBarBounds.Contains(PointToClient(Cursor.Position)) &&
+                _CaptionBounds.Contains(PointToClient(Cursor.Position)) &&
                 !(_minButtonBounds.Contains(PointToClient(Cursor.Position)) || _maxButtonBounds.Contains(PointToClient(Cursor.Position)) || _xButtonBounds.Contains(PointToClient(Cursor.Position))))
             {
                 if (!_maximized)
@@ -247,7 +262,7 @@ namespace MyControls.Forms
             {
                 Point cursorPos = PointToClient(Cursor.Position);
 
-                if (_statusBarBounds.Contains(cursorPos) && !_minButtonBounds.Contains(cursorPos) &&
+                if (_CaptionBounds.Contains(cursorPos) && !_minButtonBounds.Contains(cursorPos) &&
                     !_maxButtonBounds.Contains(cursorPos) && !_xButtonBounds.Contains(cursorPos))
                 {
                     // Show default system menu when right clicking titlebar
@@ -526,25 +541,26 @@ namespace MyControls.Forms
         {
             base.OnResize(e);
 
-            _minButtonBounds = new Rectangle((Width - 14 / 2) - 3 * STATUS_BAR_BUTTON_WIDTH, BORDER_WIDTH, STATUS_BAR_BUTTON_WIDTH, STATUS_BAR_HEIGHT);
-            _maxButtonBounds = new Rectangle((Width - 14 / 2) - 2 * STATUS_BAR_BUTTON_WIDTH, BORDER_WIDTH, STATUS_BAR_BUTTON_WIDTH, STATUS_BAR_HEIGHT);
-            _xButtonBounds = new Rectangle((Width - 14 / 2) - STATUS_BAR_BUTTON_WIDTH, BORDER_WIDTH, STATUS_BAR_BUTTON_WIDTH, STATUS_BAR_HEIGHT);
-            _statusBarBounds = new Rectangle(1, 1, Width-2, STATUS_BAR_HEIGHT);
+            _minButtonBounds = new Rectangle((Width - 14 / 2) - 3 * CAPTION_BUTTON_WIDTH, BORDER_WIDTH, CAPTION_BUTTON_WIDTH, CAPTION_HEIGHT);
+            _maxButtonBounds = new Rectangle((Width - 14 / 2) - 2 * CAPTION_BUTTON_WIDTH, BORDER_WIDTH, CAPTION_BUTTON_WIDTH, CAPTION_HEIGHT);
+            _xButtonBounds = new Rectangle((Width - 14 / 2) - CAPTION_BUTTON_WIDTH, BORDER_WIDTH, CAPTION_BUTTON_WIDTH, CAPTION_HEIGHT);
+            _CaptionBounds = new Rectangle(2, 2, Width-4, CAPTION_HEIGHT);
 
         }
 
         protected override void OnPaint(PaintEventArgs e)
         {
             var g = e.Graphics;
-
-            g.Clear(Color.White);
-            g.FillRectangle(new SolidBrush(SkinManager.FormCaptionBackColor), _statusBarBounds);
+            //Draw Background
+            g.Clear(BackColor);
+            //Draw caption
+            g.FillRectangle(new SolidBrush(SkinManager.FormCaptionBackColor), _CaptionBounds);
 
 
             //Draw border
             if (!_maximized)
             {
-                using (var borderPen = new Pen(SkinManager.FormBorderColor, 1))
+                using (var borderPen = new Pen(SkinManager.FormBorderColor))
                 {
                     g.DrawRectangle(borderPen, 0, 0, Width - 1, Height - 1);
                 }
@@ -553,8 +569,10 @@ namespace MyControls.Forms
             // Determine whether or not we even should be drawing the buttons.
             bool showMin = MinimizeBox && ControlBox;
             bool showMax = MaximizeBox && ControlBox;
-            var hoverBrush = new SolidBrush(SkinManager.FormButtonHoveColor);
+            var hoverBrush = new SolidBrush(SkinManager.FormButtonOverColor);
             var downBrush = new SolidBrush(SkinManager.FormButtonDownColor);
+            var closeHoverBrush = new SolidBrush(SkinManager.FormCloseButtonOverColor);
+            var closeDownBrush = new SolidBrush(SkinManager.FormCloseButtonDownColor);
 
             // When MaximizeButton == false, the minimize button will be painted in its place
             if (_buttonState == ButtonState.MinOver && showMin)
@@ -570,10 +588,10 @@ namespace MyControls.Forms
                 g.FillRectangle(downBrush, _maxButtonBounds);
 
             if (_buttonState == ButtonState.XOver && ControlBox)
-                g.FillRectangle(hoverBrush, _xButtonBounds);
+                g.FillRectangle(closeHoverBrush, _xButtonBounds);
 
             if (_buttonState == ButtonState.XDown && ControlBox)
-                g.FillRectangle(downBrush, _xButtonBounds);
+                g.FillRectangle(closeDownBrush, _xButtonBounds);
 
             using (var captionBrush = new SolidBrush(SkinManager.FormCaptionForeColor))
             {

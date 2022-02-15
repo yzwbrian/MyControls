@@ -8,11 +8,13 @@ namespace MyControls.Controls
     public partial class MyToolTip:  ToolTip
     {
         #region 属性
+        
         public new ToolTipIcon ToolTipIcon { get; private set; }
         public Image Icon { get; set; }
         public string Title { get; set; }
         public string Content { get; set; }
         public Size ShowSize { get; set; }
+        
         #endregion
 
         public const int DW = 120;
@@ -36,6 +38,7 @@ namespace MyControls.Controls
         #region 事件
         private void MyToolTip_Draw(object sender, DrawToolTipEventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine("a");
             Graphics g = e.Graphics;
             Rectangle b = e.Bounds;
             //background

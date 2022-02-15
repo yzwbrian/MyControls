@@ -49,7 +49,7 @@ namespace MyControls.Forms
             Top = y;
             if (child != null)
             {
-                Size = child.Size;
+                _child = child;
                 Controls.Add(child);
             }
 
@@ -182,6 +182,5 @@ namespace MyControls.Forms
             return false;
         }
         #endregion
-
     }
 }
